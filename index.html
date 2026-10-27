@@ -13,6 +13,28 @@
   </header>
 
   <main class="app-main">
+    <form class="filters" id="filters" aria-label="快篩條件">
+      <label class="filter">
+        <span>最高租金：<output id="rent-output">不限</output></span>
+        <input type="range" id="f-rent" min="5000" max="60000" step="1000" value="60000" />
+      </label>
+      <label class="filter">
+        <span>最少房數</span>
+        <select id="f-rooms">
+          <option value="0">不限</option>
+          <option value="1">1 房以上</option>
+          <option value="2">2 房以上</option>
+          <option value="3">3 房以上</option>
+        </select>
+      </label>
+      <label class="filter">
+        <span>行政區</span>
+        <select id="f-district">
+          <option value="">不限</option>
+        </select>
+      </label>
+      <button type="button" id="f-reset" class="reset-btn">重設</button>
+    </form>
     <div class="toolbar">
       <span id="summary" class="summary"></span>
     </div>
