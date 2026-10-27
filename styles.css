@@ -1,0 +1,55 @@
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --ink: #1b1f24;
+  --muted: #6b7380;
+  --line: #e3e6ea;
+  --brand: #2f6f4f;
+  --brand-ink: #ffffff;
+  --accent: #eaf3ee;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+.app-header {
+  padding: 20px 16px 16px;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+.app-header h1 { margin: 0; font-size: 1.5rem; }
+.tagline { margin: 4px 0 0; opacity: 0.9; font-size: 0.9rem; }
+
+.app-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 16px;
+}
+
+.app-footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px 16px;
+}
