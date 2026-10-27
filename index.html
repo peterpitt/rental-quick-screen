@@ -43,6 +43,15 @@
     </form>
     <div class="toolbar">
       <span id="summary" class="summary"></span>
+      <label class="sort">
+        排序：
+        <select id="f-sort">
+          <option value="score">綜合評分</option>
+          <option value="rent">租金低到高</option>
+          <option value="size">坪數大到小</option>
+          <option value="commute">離捷運近</option>
+        </select>
+      </label>
     </div>
     <section id="results" class="results" aria-live="polite">
       <!-- 物件卡片由 app.js 動態產生 -->

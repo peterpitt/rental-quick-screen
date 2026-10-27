@@ -131,12 +131,29 @@ body {
   justify-content: space-between;
   gap: 8px;
 }
+.head-left { display: flex; align-items: center; gap: 6px; }
 .card-district {
   font-size: 0.8rem;
   color: var(--brand);
   background: var(--accent);
   padding: 2px 8px;
   border-radius: 999px;
+}
+.score-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.sort { color: var(--muted); font-size: 0.85rem; }
+.sort select {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.85rem;
 }
 .card-rent { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
 .card-rent small { font-size: 0.75rem; font-weight: 400; color: var(--muted); }

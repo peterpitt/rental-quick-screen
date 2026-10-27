@@ -2,6 +2,7 @@
 // Feature 1：以卡片呈現物件。
 // Feature 2：依核心條件（最高租金 / 最少房數 / 行政區）即時篩選。
 // Feature 3：必備條件淘汰（缺一即出局），與軟性評分分開處理。
+// Feature 4：以加權評分排名剩餘物件，分數透明顯示於卡片上。
 (function () {
   "use strict";
 
@@ -11,13 +12,16 @@
       maxRent: Infinity,
       minRooms: 0,
       district: "",
-      // 必備條件：true 代表「一定要有」，缺少即淘汰。
       mustHave: { pets: false, elevator: false, nearMRT: false },
     },
+    sort: "score",
     dom: {},
   };
 
   const RENT_MAX = 60000; // 與 index.html 的 slider 上限一致
+
+  // 綜合評分權重（總和為 1）：價格為多數租客最在意，故權重最高。
+  const WEIGHTS = { rent: 0.4, size: 0.25, commute: 0.25, furnished: 0.1 };
 
   // --- 純函式工具（可在 Node 測試） ---
   function formatRent(rent) {
@@ -42,7 +46,6 @@
     return chips;
   }
 
-  // 數值 / 類別條件（Feature 2）。
   function passesConstraints(l, f) {
     if (l.rent > f.maxRent) return false;
     if (l.rooms < f.minRooms) return false;
@@ -50,7 +53,6 @@
     return true;
   }
 
-  // 必備條件（Feature 3）：勾選的項目，物件缺一即淘汰。
   function passesMustHaves(l, f) {
     const m = f.mustHave;
     if (m.pets && !l.petsAllowed) return false;
@@ -59,19 +61,58 @@
     return true;
   }
 
-  // 完整篩選 = 數值條件 + 必備條件。
   function applyFilters(listings, f) {
     return listings.filter((l) => passesConstraints(l, f) && passesMustHaves(l, f));
   }
 
-  function cardHtml(listing) {
+  // 把單一數值正規化到 0..1。invert=true 代表「越小越好」（租金、通勤）。
+  function norm(value, min, max, invert) {
+    if (max === min) return 0.5; // 整組相同時給中間值，避免除以零
+    const t = (value - min) / (max - min);
+    return invert ? 1 - t : t;
+  }
+
+  // 綜合評分：相對於「目前這組物件」正規化，回傳 {listing, score(0..100)}。
+  function scoreListings(listings) {
+    if (listings.length === 0) return [];
+    const rents = listings.map((l) => l.rent);
+    const sizes = listings.map((l) => l.size);
+    const mins = listings.map((l) => l.minutesToMRT);
+    const rMin = Math.min(...rents), rMax = Math.max(...rents);
+    const sMin = Math.min(...sizes), sMax = Math.max(...sizes);
+    const mMin = Math.min(...mins), mMax = Math.max(...mins);
+    return listings.map((l) => {
+      const fit =
+        WEIGHTS.rent * norm(l.rent, rMin, rMax, true) +
+        WEIGHTS.size * norm(l.size, sMin, sMax, false) +
+        WEIGHTS.commute * norm(l.minutesToMRT, mMin, mMax, true) +
+        WEIGHTS.furnished * (l.furnished ? 1 : 0);
+      return { listing: l, score: Math.round(fit * 100) };
+    });
+  }
+
+  // 依使用者選擇的方式排序已評分的列。
+  function sortRows(rows, key) {
+    const r = rows.slice();
+    if (key === "rent") r.sort((a, b) => a.listing.rent - b.listing.rent);
+    else if (key === "size") r.sort((a, b) => b.listing.size - a.listing.size);
+    else if (key === "commute")
+      r.sort((a, b) => a.listing.minutesToMRT - b.listing.minutesToMRT);
+    else r.sort((a, b) => b.score - a.score); // 綜合評分：高到低
+    return r;
+  }
+
+  function cardHtml(listing, score) {
     const chips = attributeChips(listing)
       .map((c) => '<li class="chip">' + escapeHtml(c) + "</li>")
       .join("");
     return (
       '<article class="card">' +
       '<div class="card-head">' +
+      '<span class="head-left">' +
       '<span class="card-district">' + escapeHtml(listing.district) + "</span>" +
+      '<span class="score-badge" title="綜合評分">適配 ' + score + "</span>" +
+      "</span>" +
       '<span class="card-rent">' + formatRent(listing.rent) + "<small>/月</small></span>" +
       "</div>" +
       '<h2 class="card-title">' + escapeHtml(listing.title) + "</h2>" +
@@ -93,7 +134,6 @@
 
   function rerender() {
     const f = state.filters;
-    // 先套數值條件，再套必備條件，才能分開算出「被必備條件淘汰」的數量。
     const afterConstraints = state.all.filter((l) => passesConstraints(l, f));
     const shown = afterConstraints.filter((l) => passesMustHaves(l, f));
     const knockedOut = afterConstraints.length - shown.length;
@@ -112,7 +152,11 @@
       renderEmptyState("沒有符合條件的物件，試著放寬快篩或必備條件。");
       return;
     }
-    state.dom.results.innerHTML = shown.map(cardHtml).join("");
+
+    const rows = sortRows(scoreListings(shown), state.sort);
+    state.dom.results.innerHTML = rows
+      .map((row) => cardHtml(row.listing, row.score))
+      .join("");
   }
 
   function populateDistricts(selectEl, listings) {
@@ -134,6 +178,7 @@
     const petsEl = document.getElementById("m-pets");
     const elevatorEl = document.getElementById("m-elevator");
     const mrtEl = document.getElementById("m-mrt");
+    const sortEl = document.getElementById("f-sort");
 
     populateDistricts(districtEl, state.all);
 
@@ -167,6 +212,10 @@
       state.filters.mustHave.nearMRT = mrtEl.checked;
       rerender();
     });
+    sortEl.addEventListener("change", function () {
+      state.sort = sortEl.value;
+      rerender();
+    });
     resetEl.addEventListener("click", function () {
       rentEl.value = RENT_MAX;
       roomsEl.value = "0";
@@ -174,12 +223,14 @@
       petsEl.checked = false;
       elevatorEl.checked = false;
       mrtEl.checked = false;
+      sortEl.value = "score";
       state.filters = {
         maxRent: Infinity,
         minRooms: 0,
         district: "",
         mustHave: { pets: false, elevator: false, nearMRT: false },
       };
+      state.sort = "score";
       syncRentLabel(RENT_MAX);
       rerender();
     });
@@ -204,6 +255,8 @@
       applyFilters,
       passesConstraints,
       passesMustHaves,
+      scoreListings,
+      sortRows,
       attributeChips,
       formatRent,
     };
