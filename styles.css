@@ -68,6 +68,30 @@ body {
   font-size: 0.9rem;
 }
 .filter output { color: var(--brand); font-weight: 600; }
+.musthave {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--brand);
+  border-radius: 8px;
+  padding: 6px 10px 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.musthave legend {
+  font-size: 0.78rem;
+  color: var(--brand);
+  padding: 0 4px;
+}
+.musthave label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
 .reset-btn {
   margin-left: auto;
   align-self: end;

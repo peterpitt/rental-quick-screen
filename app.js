@@ -1,14 +1,19 @@
 // 租屋快篩 — 應用程式進入點
 // Feature 1：以卡片呈現物件。
 // Feature 2：依核心條件（最高租金 / 最少房數 / 行政區）即時篩選。
+// Feature 3：必備條件淘汰（缺一即出局），與軟性評分分開處理。
 (function () {
   "use strict";
 
-  // 全部物件（來源資料）、目前篩選條件、以及 DOM 參照分開存放：
-  // 來源不變，篩選只是對它做一次純函式運算，方便後續功能疊加。
   const state = {
     all: [],
-    filters: { maxRent: Infinity, minRooms: 0, district: "" },
+    filters: {
+      maxRent: Infinity,
+      minRooms: 0,
+      district: "",
+      // 必備條件：true 代表「一定要有」，缺少即淘汰。
+      mustHave: { pets: false, elevator: false, nearMRT: false },
+    },
     dom: {},
   };
 
@@ -37,14 +42,26 @@
     return chips;
   }
 
-  // 篩選：純函式，輸入全部物件 + 條件，輸出符合的物件。
-  function applyFilters(listings, filters) {
-    return listings.filter(function (l) {
-      if (l.rent > filters.maxRent) return false;
-      if (l.rooms < filters.minRooms) return false;
-      if (filters.district && l.district !== filters.district) return false;
-      return true;
-    });
+  // 數值 / 類別條件（Feature 2）。
+  function passesConstraints(l, f) {
+    if (l.rent > f.maxRent) return false;
+    if (l.rooms < f.minRooms) return false;
+    if (f.district && l.district !== f.district) return false;
+    return true;
+  }
+
+  // 必備條件（Feature 3）：勾選的項目，物件缺一即淘汰。
+  function passesMustHaves(l, f) {
+    const m = f.mustHave;
+    if (m.pets && !l.petsAllowed) return false;
+    if (m.elevator && !l.elevator) return false;
+    if (m.nearMRT && !l.nearMRT) return false;
+    return true;
+  }
+
+  // 完整篩選 = 數值條件 + 必備條件。
+  function applyFilters(listings, f) {
+    return listings.filter((l) => passesConstraints(l, f) && passesMustHaves(l, f));
   }
 
   function cardHtml(listing) {
@@ -69,26 +86,32 @@
     );
   }
 
-  // --- 以下為瀏覽器端（需要 DOM） ---
   function renderEmptyState(message) {
     state.dom.results.innerHTML =
       '<p class="empty-state">' + escapeHtml(message) + "</p>";
   }
 
   function rerender() {
-    const shown = applyFilters(state.all, state.filters);
+    const f = state.filters;
+    // 先套數值條件，再套必備條件，才能分開算出「被必備條件淘汰」的數量。
+    const afterConstraints = state.all.filter((l) => passesConstraints(l, f));
+    const shown = afterConstraints.filter((l) => passesMustHaves(l, f));
+    const knockedOut = afterConstraints.length - shown.length;
+
     if (state.all.length === 0) {
       state.dom.summary.textContent = "";
       renderEmptyState("尚無物件資料。");
       return;
     }
+
+    let summary = "共 " + shown.length + " 筆（總物件 " + state.all.length + " 筆）";
+    if (knockedOut > 0) summary += "，另有 " + knockedOut + " 筆因必備條件被淘汰";
+    state.dom.summary.textContent = summary;
+
     if (shown.length === 0) {
-      state.dom.summary.textContent = "共 0 筆（總物件 " + state.all.length + " 筆）";
-      renderEmptyState("沒有符合條件的物件，試著放寬快篩條件。");
+      renderEmptyState("沒有符合條件的物件，試著放寬快篩或必備條件。");
       return;
     }
-    state.dom.summary.textContent =
-      "共 " + shown.length + " 筆（總物件 " + state.all.length + " 筆）";
     state.dom.results.innerHTML = shown.map(cardHtml).join("");
   }
 
@@ -108,12 +131,14 @@
     const roomsEl = document.getElementById("f-rooms");
     const districtEl = document.getElementById("f-district");
     const resetEl = document.getElementById("f-reset");
+    const petsEl = document.getElementById("m-pets");
+    const elevatorEl = document.getElementById("m-elevator");
+    const mrtEl = document.getElementById("m-mrt");
 
     populateDistricts(districtEl, state.all);
 
     function syncRentLabel(value) {
       const v = Number(value);
-      // 滑到最大值視為「不限」，避免排除掉最貴的物件。
       rentOut.textContent = v >= RENT_MAX ? "不限" : formatRent(v) + " 以下";
       state.filters.maxRent = v >= RENT_MAX ? Infinity : v;
     }
@@ -130,11 +155,31 @@
       state.filters.district = districtEl.value;
       rerender();
     });
+    petsEl.addEventListener("change", function () {
+      state.filters.mustHave.pets = petsEl.checked;
+      rerender();
+    });
+    elevatorEl.addEventListener("change", function () {
+      state.filters.mustHave.elevator = elevatorEl.checked;
+      rerender();
+    });
+    mrtEl.addEventListener("change", function () {
+      state.filters.mustHave.nearMRT = mrtEl.checked;
+      rerender();
+    });
     resetEl.addEventListener("click", function () {
       rentEl.value = RENT_MAX;
       roomsEl.value = "0";
       districtEl.value = "";
-      state.filters = { maxRent: Infinity, minRooms: 0, district: "" };
+      petsEl.checked = false;
+      elevatorEl.checked = false;
+      mrtEl.checked = false;
+      state.filters = {
+        maxRent: Infinity,
+        minRooms: 0,
+        district: "",
+        mustHave: { pets: false, elevator: false, nearMRT: false },
+      };
       syncRentLabel(RENT_MAX);
       rerender();
     });
@@ -154,8 +199,13 @@
     document.addEventListener("DOMContentLoaded", init);
   }
 
-  // 匯出純函式，供 Node 煙霧測試使用（瀏覽器端不受影響）。
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { applyFilters, attributeChips, formatRent };
+    module.exports = {
+      applyFilters,
+      passesConstraints,
+      passesMustHaves,
+      attributeChips,
+      formatRent,
+    };
   }
 })();
