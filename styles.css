@@ -155,7 +155,70 @@ body {
   background: #fff;
   font-size: 0.85rem;
 }
-.card-rent { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+.head-right { display: flex; align-items: center; gap: 8px; }
+.card-rent { font-size: 1.25rem; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.star {
+  border: none;
+  background: transparent;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #e0a800;
+  padding: 0 2px;
+}
+.star[aria-pressed="false"] { color: var(--muted); }
+.star:hover { color: #e0a800; }
+
+.shortlist-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.ghost-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.ghost-btn:disabled { opacity: 0.45; cursor: not-allowed; border-color: var(--line); color: var(--muted); }
+.ghost-btn:not(:disabled):hover { background: var(--brand); color: var(--brand-ink); }
+
+.compare { margin-bottom: 16px; }
+.compare-title { font-size: 1.05rem; margin: 0 0 8px; }
+.compare-scroll { overflow-x: auto; }
+.compare-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+.compare-table th,
+.compare-table td {
+  border: 1px solid var(--line);
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.compare-table thead th { background: var(--accent); color: var(--ink); }
+.compare-table th[scope="row"] { color: var(--muted); white-space: nowrap; }
+.compare-table td.best {
+  background: #eaf7ef;
+  font-weight: 700;
+  color: var(--brand);
+}
 .card-rent small { font-size: 0.75rem; font-weight: 400; color: var(--muted); }
 .card-title { margin: 0; font-size: 1.05rem; }
 .card-specs { margin: 0; color: var(--muted); font-size: 0.9rem; }

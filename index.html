@@ -53,6 +53,16 @@
         </select>
       </label>
     </div>
+    <div class="shortlist-bar" id="shortlist-bar">
+      <span id="shortlist-count">候選名單：0 筆</span>
+      <button type="button" id="compare-btn" class="ghost-btn" disabled>比較候選</button>
+      <button type="button" id="clear-shortlist" class="ghost-btn" disabled>清除候選</button>
+    </div>
+
+    <section id="compare" class="compare" hidden aria-label="候選比較">
+      <!-- 比較表由 app.js 動態產生 -->
+    </section>
+
     <section id="results" class="results" aria-live="polite">
       <!-- 物件卡片由 app.js 動態產生 -->
     </section>
